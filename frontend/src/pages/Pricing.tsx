@@ -2,12 +2,13 @@
  * Pricing Page with Stripe Integration
  * Author: Ali Sohel <avesohel@gmail.com>
  */
-import React, { useState } from "react";
-import { loadStripe } from "@stripe/stripe-js";
+import { useState } from "react";
+// import { loadStripe } from "@stripe/stripe-js";
 import { Check } from "lucide-react";
 import toast from "react-hot-toast";
 
-const stripePromise = loadStripe(import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY);
+// Stripe setup - uncomment when backend is ready
+// const stripePromise = loadStripe(import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY);
 
 const plans = [
   {
@@ -68,23 +69,34 @@ export default function Pricing() {
 
     setLoading(planName);
     try {
-      const response = await fetch("/api/create-checkout-session", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${localStorage.getItem("token")}`,
-        },
-        body: JSON.stringify({ priceId }),
-      });
+      // TODO: Implement backend API endpoint for Stripe checkout
+      toast.error(
+        "Stripe integration coming soon! This is a demo version."
+      );
 
-      const { sessionId } = await response.json();
-
-      const stripe = await stripePromise;
-      const { error } = await stripe!.redirectToCheckout({ sessionId });
-
-      if (error) {
-        toast.error(error.message);
-      }
+      // This code will work once backend API is implemented:
+      // const response = await fetch("/api/create-checkout-session", {
+      //   method: "POST",
+      //   headers: {
+      //     "Content-Type": "application/json",
+      //     Authorization: `Bearer ${localStorage.getItem("token")}`,
+      //   },
+      //   body: JSON.stringify({ priceId }),
+      // });
+      //
+      // const { sessionId } = await response.json();
+      //
+      // const stripe = await stripePromise;
+      // if (!stripe) {
+      //   toast.error("Stripe failed to load");
+      //   return;
+      // }
+      //
+      // const { error } = await stripe.redirectToCheckout({ sessionId });
+      //
+      // if (error) {
+      //   toast.error(error.message);
+      // }
     } catch (error) {
       console.error("Error:", error);
       toast.error("Failed to start checkout");

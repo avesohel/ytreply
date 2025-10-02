@@ -2,7 +2,7 @@
  * Main Dashboard
  * Author: Ali Sohel <avesohel@gmail.com>
  */
-import React, { useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 import { supabase } from "../lib/supabase";
 import { Video, MessageSquare, TrendingUp, Settings } from "lucide-react";
 import toast from "react-hot-toast";
@@ -41,7 +41,7 @@ export default function Dashboard() {
       const { count: replyCount } = await supabase
         .from("comment_replies")
         .select("*", { count: "exact", head: true })
-        .eq("video_id", videoCount);
+        .eq("user_id", user.id);
 
       // Get this month's usage
       const currentMonth = new Date().toISOString().slice(0, 7);
@@ -59,19 +59,21 @@ export default function Dashboard() {
         .eq("id", user.id)
         .single();
 
-      const limits = {
+      const limits: Record<string, number> = {
         free: 25,
         pro: 500,
         business: 2500,
         enterprise: 999999,
       };
 
+      const planType = (profile?.plan_type || "free") as keyof typeof limits;
+
       setStats({
         totalVideos: videoCount || 0,
         totalReplies: replyCount || 0,
         thisMonth: {
           replies: usage?.auto_replies_count || 0,
-          limit: limits[profile?.plan_type || "free"],
+          limit: limits[planType],
         },
       });
     } catch (error) {
@@ -161,18 +163,18 @@ export default function Dashboard() {
             Quick Actions
           </h2>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <button
-              onClick={() => (window.location.href = "/videos/add")}
+            <a
+              href="/videos"
               className="flex items-center justify-center px-6 py-4 border-2 border-dashed border-gray-300 rounded-lg hover:border-indigo-500 hover:bg-indigo-50 transition-all">
               <Video className="h-6 w-6 mr-2" />
-              Add New Video
-            </button>
-            <button
-              onClick={() => (window.location.href = "/channels")}
+              Manage Videos
+            </a>
+            <a
+              href="/channels"
               className="flex items-center justify-center px-6 py-4 border-2 border-dashed border-gray-300 rounded-lg hover:border-indigo-500 hover:bg-indigo-50 transition-all">
               <Settings className="h-6 w-6 mr-2" />
               Manage Channels
-            </button>
+            </a>
           </div>
         </div>
       </div>

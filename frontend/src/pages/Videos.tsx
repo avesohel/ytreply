@@ -2,7 +2,7 @@
  * Videos Management Page
  * Author: Ali Sohel <avesohel@gmail.com>
  */
-import React, { useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 import { supabase } from "../lib/supabase";
 import {
   Video as VideoIcon,
@@ -87,8 +87,15 @@ export default function Videos() {
         .select("*", { count: "exact", head: true })
         .eq("user_id", user.id);
 
-      const limits = { free: 5, pro: 100, business: 999, enterprise: 9999 };
-      if ((count || 0) >= limits[profile?.plan_type || "free"]) {
+      const limits: Record<string, number> = {
+        free: 5,
+        pro: 100,
+        business: 999,
+        enterprise: 9999,
+      };
+      const planType = (profile?.plan_type || "free") as keyof typeof limits;
+
+      if ((count || 0) >= limits[planType]) {
         toast.error("Video limit reached. Please upgrade your plan.");
         return;
       }
