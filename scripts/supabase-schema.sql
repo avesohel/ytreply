@@ -1,14 +1,26 @@
--- YTReply Database Schema
+-- YTReply Database Schema - Clean Install
 -- Author: Ali Sohel <avesohel@gmail.com>
 -- Created: 2025
+
+-- Clean slate: Drop all tables in reverse dependency order
+DROP TABLE IF EXISTS public.comment_replies CASCADE;
+DROP TABLE IF EXISTS public.usage_stats CASCADE;
+DROP TABLE IF EXISTS public.subscription_events CASCADE;
+DROP TABLE IF EXISTS public.reply_templates CASCADE;
+DROP TABLE IF EXISTS public.videos CASCADE;
+DROP TABLE IF EXISTS public.youtube_channels CASCADE;
+DROP TABLE IF EXISTS public.profiles CASCADE;
 
 -- Enable UUID extension
 CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
 
+-- Begin transaction for atomic execution
+BEGIN;
+
 -- ============================================
 -- PROFILES TABLE
 -- ============================================
-CREATE TABLE IF NOT EXISTS public.profiles (
+CREATE TABLE public.profiles (
   id UUID REFERENCES auth.users(id) ON DELETE CASCADE PRIMARY KEY,
   email TEXT UNIQUE NOT NULL,
   full_name TEXT,
@@ -26,7 +38,7 @@ CREATE TABLE IF NOT EXISTS public.profiles (
 -- ============================================
 -- YOUTUBE CHANNELS TABLE
 -- ============================================
-CREATE TABLE IF NOT EXISTS public.youtube_channels (
+CREATE TABLE public.youtube_channels (
   id UUID DEFAULT uuid_generate_v4() PRIMARY KEY,
   user_id UUID REFERENCES public.profiles(id) ON DELETE CASCADE NOT NULL,
   channel_id TEXT UNIQUE NOT NULL,
@@ -46,7 +58,7 @@ CREATE TABLE IF NOT EXISTS public.youtube_channels (
 -- ============================================
 -- VIDEOS TABLE
 -- ============================================
-CREATE TABLE IF NOT EXISTS public.videos (
+CREATE TABLE public.videos (
   id UUID DEFAULT uuid_generate_v4() PRIMARY KEY,
   user_id UUID REFERENCES public.profiles(id) ON DELETE CASCADE NOT NULL,
   channel_id UUID REFERENCES public.youtube_channels(id) ON DELETE SET NULL,
@@ -69,7 +81,7 @@ CREATE TABLE IF NOT EXISTS public.videos (
 -- ============================================
 -- COMMENT REPLIES TABLE
 -- ============================================
-CREATE TABLE IF NOT EXISTS public.comment_replies (
+CREATE TABLE public.comment_replies (
   id UUID DEFAULT uuid_generate_v4() PRIMARY KEY,
   user_id UUID REFERENCES public.profiles(id) ON DELETE CASCADE NOT NULL,
   video_id UUID REFERENCES public.videos(id) ON DELETE CASCADE NOT NULL,
@@ -86,7 +98,7 @@ CREATE TABLE IF NOT EXISTS public.comment_replies (
 -- ============================================
 -- USAGE STATS TABLE
 -- ============================================
-CREATE TABLE IF NOT EXISTS public.usage_stats (
+CREATE TABLE public.usage_stats (
   id UUID DEFAULT uuid_generate_v4() PRIMARY KEY,
   user_id UUID REFERENCES public.profiles(id) ON DELETE CASCADE NOT NULL,
   month TEXT NOT NULL, -- Format: YYYY-MM
@@ -102,7 +114,7 @@ CREATE TABLE IF NOT EXISTS public.usage_stats (
 -- ============================================
 -- SUBSCRIPTION EVENTS TABLE (for audit log)
 -- ============================================
-CREATE TABLE IF NOT EXISTS public.subscription_events (
+CREATE TABLE public.subscription_events (
   id UUID DEFAULT uuid_generate_v4() PRIMARY KEY,
   user_id UUID REFERENCES public.profiles(id) ON DELETE CASCADE NOT NULL,
   event_type TEXT NOT NULL,
@@ -117,7 +129,7 @@ CREATE TABLE IF NOT EXISTS public.subscription_events (
 -- ============================================
 -- AUTO REPLY TEMPLATES TABLE (optional feature)
 -- ============================================
-CREATE TABLE IF NOT EXISTS public.reply_templates (
+CREATE TABLE public.reply_templates (
   id UUID DEFAULT uuid_generate_v4() PRIMARY KEY,
   user_id UUID REFERENCES public.profiles(id) ON DELETE CASCADE NOT NULL,
   name TEXT NOT NULL,
@@ -273,6 +285,7 @@ CREATE TRIGGER on_auth_user_created
   FOR EACH ROW EXECUTE FUNCTION public.handle_new_user();
 
 -- Function to increment usage stats
+DROP FUNCTION IF EXISTS public.increment_usage(uuid,text,integer);
 CREATE OR REPLACE FUNCTION public.increment_usage(
   p_user_id UUID,
   p_field TEXT,
@@ -307,3 +320,6 @@ $$ LANGUAGE plpgsql SECURITY DEFINER;
 -- ============================================
 
 -- You can add default reply templates here if needed
+
+-- Commit transaction
+COMMIT;

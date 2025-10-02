@@ -1,0 +1,15 @@
+{
+  "name": "yt-reply-saas",
+  "version": "1.0.0",
+  "description": "YouTube Reply Automation SaaS",
+  "scripts": {
+    "check-db": "node scripts/check-db.mjs",
+    "check-schema": "node scripts/check-db.mjs"
+  },
+  "dependencies": {
+    "@supabase/supabase-js": "^2.39.0"
+  },
+  "devDependencies": {},
+  "author": "Ali Sohel <avesohel@gmail.com>",
+  "license": "MIT"
+}
