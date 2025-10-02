@@ -1,0 +1,31 @@
+# docker compose file for n8n with basic auth and persistent storage
+# Make sure to set the environment variables N8N_PASSWORD and N8N_HOST before running the deployment
+# Example:
+# export N8N_PASSWORD=yourpassword
+# export N8N_HOST=yourdomain.com # (make sure your domain points to your server's IP)
+# Ali Sohel - 2025
+version: "3.8"
+
+services:
+  n8n:
+    image: n8nio/n8n
+    restart: always
+    ports:
+      - "5678:5678"
+    environment:
+      - N8N_BASIC_AUTH_ACTIVE=true
+      - N8N_BASIC_AUTH_USER=admin
+      - N8N_BASIC_AUTH_PASSWORD=${N8N_PASSWORD}
+      - N8N_HOST=${N8N_HOST}
+      - N8N_PROTOCOL=https
+      - NODE_ENV=production
+      - WEBHOOK_URL=https://${N8N_HOST}/
+    volumes:
+      - n8n_data:/home/node/.n8n
+
+volumes:
+  n8n_data:
+# Deploy
+# docker-compose up -d
+
+# Cost: $5/month (Hetzner/DigitalOcean)

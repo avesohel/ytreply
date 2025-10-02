@@ -1,0 +1,168 @@
+{
+  "name": "YouTube Comment Auto-Reply",
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "minutes",
+              "minutesInterval": 5
+            }
+          ]
+        }
+      },
+      "name": "Every 5 Minutes",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "position": [250, 300],
+      "id": "schedule-trigger"
+    },
+    {
+      "parameters": {
+        "authentication": "oAuth2",
+        "resource": "video",
+        "operation": "list",
+        "part": "snippet",
+        "mine": true
+      },
+      "name": "Get User Videos",
+      "type": "n8n-nodes-base.youtube",
+      "position": [450, 300],
+      "id": "get-videos"
+    },
+    {
+      "parameters": {
+        "authentication": "oAuth2",
+        "resource": "commentThread",
+        "operation": "list",
+        "videoId": "={{ $json.id }}",
+        "part": "snippet",
+        "maxResults": 50,
+        "order": "time"
+      },
+      "name": "Get Comments",
+      "type": "n8n-nodes-base.youtube",
+      "position": [650, 300],
+      "id": "get-comments"
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "SELECT * FROM comment_replies WHERE youtube_comment_id = '{{ $json.snippet.topLevelComment.id }}'"
+      },
+      "name": "Check If Replied",
+      "type": "n8n-nodes-base.supabase",
+      "position": [850, 300],
+      "id": "check-replied"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "string": [
+            {
+              "value1": "={{ $json.length }}",
+              "operation": "equal",
+              "value2": "0"
+            }
+          ]
+        }
+      },
+      "name": "Not Replied Yet?",
+      "type": "n8n-nodes-base.if",
+      "position": [1050, 300],
+      "id": "if-not-replied"
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "SELECT transcript FROM videos WHERE youtube_video_id = '{{ $json.videoId }}'"
+      },
+      "name": "Get Video Transcript",
+      "type": "n8n-nodes-base.supabase",
+      "position": [1250, 250],
+      "id": "get-transcript"
+    },
+    {
+      "parameters": {
+        "resource": "text",
+        "operation": "message",
+        "model": "gpt-4",
+        "messages": {
+          "values": [
+            {
+              "role": "system",
+              "content": "You are helping a YouTuber respond to comments. Video context: {{ $json.transcript }}\n\nGuidelines:\n- Be friendly and helpful\n- Keep responses under 3 sentences\n- Stay on topic\n- Be genuine and conversational"
+            },
+            {
+              "role": "user",
+              "content": "Respond to this comment: {{ $('Get Comments').item.json.snippet.topLevelComment.snippet.textDisplay }}"
+            }
+          ]
+        }
+      },
+      "name": "Generate AI Reply",
+      "type": "n8n-nodes-base.openAi",
+      "position": [1450, 250],
+      "id": "generate-reply"
+    },
+    {
+      "parameters": {
+        "authentication": "oAuth2",
+        "resource": "comment",
+        "operation": "insert",
+        "part": "snippet",
+        "snippet": {
+          "parentId": "={{ $('Get Comments').item.json.snippet.topLevelComment.id }}",
+          "textOriginal": "={{ $json.choices[0].message.content }}"
+        }
+      },
+      "name": "Post Reply",
+      "type": "n8n-nodes-base.youtube",
+      "position": [1650, 250],
+      "id": "post-reply"
+    },
+    {
+      "parameters": {
+        "operation": "insert",
+        "table": "comment_replies",
+        "data": {
+          "video_id": "={{ $('Get Videos').item.json.id }}",
+          "youtube_comment_id": "={{ $('Get Comments').item.json.snippet.topLevelComment.id }}",
+          "comment_text": "={{ $('Get Comments').item.json.snippet.topLevelComment.snippet.textDisplay }}",
+          "reply_text": "={{ $('Generate AI Reply').item.json.choices[0].message.content }}",
+          "replied_at": "={{ $now }}"
+        }
+      },
+      "name": "Log Reply",
+      "type": "n8n-nodes-base.supabase",
+      "position": [1850, 250],
+      "id": "log-reply"
+    }
+  ],
+  "connections": {
+    "Every 5 Minutes": {
+      "main": [[{ "node": "Get User Videos", "type": "main", "index": 0 }]]
+    },
+    "Get User Videos": {
+      "main": [[{ "node": "Get Comments", "type": "main", "index": 0 }]]
+    },
+    "Get Comments": {
+      "main": [[{ "node": "Check If Replied", "type": "main", "index": 0 }]]
+    },
+    "Check If Replied": {
+      "main": [[{ "node": "Not Replied Yet?", "type": "main", "index": 0 }]]
+    },
+    "Not Replied Yet?": {
+      "main": [[{ "node": "Get Video Transcript", "type": "main", "index": 0 }]]
+    },
+    "Get Video Transcript": {
+      "main": [[{ "node": "Generate AI Reply", "type": "main", "index": 0 }]]
+    },
+    "Generate AI Reply": {
+      "main": [[{ "node": "Post Reply", "type": "main", "index": 0 }]]
+    },
+    "Post Reply": {
+      "main": [[{ "node": "Log Reply", "type": "main", "index": 0 }]]
+    }
+  }
+}

@@ -1,0 +1,62 @@
+{
+  "name": "Video Transcription",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "transcribe-video",
+        "responseMode": "responseNode"
+      },
+      "name": "Webhook - New Video",
+      "type": "n8n-nodes-base.webhook",
+      "position": [250, 300],
+      "webhookId": "transcribe-webhook"
+    },
+    {
+      "parameters": {
+        "url": "https://www.youtube.com/watch?v={{ $json.videoId }}",
+        "options": {}
+      },
+      "name": "Download Video",
+      "type": "n8n-nodes-base.httpRequest",
+      "position": [450, 300]
+    },
+    {
+      "parameters": {
+        "resource": "audio",
+        "operation": "transcribe",
+        "binaryData": true,
+        "model": "whisper-1"
+      },
+      "name": "Transcribe with Whisper",
+      "type": "n8n-nodes-base.openAi",
+      "position": [650, 300]
+    },
+    {
+      "parameters": {
+        "operation": "update",
+        "table": "videos",
+        "filterBy": "youtube_video_id",
+        "filterValue": "={{ $json.videoId }}",
+        "data": {
+          "transcript": "={{ $json.text }}"
+        }
+      },
+      "name": "Save Transcript",
+      "type": "n8n-nodes-base.supabase",
+      "position": [850, 300]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": {
+          "success": true,
+          "message": "Transcription completed"
+        }
+      },
+      "name": "Respond to Webhook",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "position": [1050, 300]
+    }
+  ]
+}
